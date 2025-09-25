@@ -187,12 +187,24 @@ func toFirebaseMessage(m *message, auther user.Auther) (*messaging.Message, erro
 		if m.PollID != "" {
 			data["poll_id"] = m.PollID
 		}
+		if m.AndroidNotificationID != "" {
+			data["android_notification_id"] = m.AndroidNotificationID
+		}
 		apnsConfig = createAPNSAlertConfig(m, data)
 	}
 	var androidConfig *messaging.AndroidConfig
-	if m.Priority >= 4 {
+	if m.Priority >= 4 || m.AndroidNotificationID != "" {
 		androidConfig = &messaging.AndroidConfig{
 			Priority: "high",
+		}
+		if m.Priority < 4 && m.AndroidNotificationID != "" {
+			// If we have an Android notification ID but not high priority, don't set high priority
+			androidConfig.Priority = "normal"
+		}
+		if m.AndroidNotificationID != "" {
+			androidConfig.Notification = &messaging.AndroidNotification{
+				Tag: m.AndroidNotificationID,
+			}
 		}
 	}
 	return maybeTruncateFCMMessage(&messaging.Message{

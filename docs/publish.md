@@ -502,6 +502,9 @@ status changes, or any scenario where you want to update a notification rather t
 When you publish a message with the same Android notification ID as a previously published message, the Android app will 
 replace the existing notification instead of showing a new one.
 
+The Android notification ID is automatically sent to Firebase (if enabled) and other Android push mechanisms to ensure 
+proper notification replacement behavior across all delivery methods.
+
 You can set the Android notification ID using the `X-Android-Notification-ID` header (or its alias `Android-Notification-ID`). 
 The notification ID must be a valid integer between -2,147,483,648 and 2,147,483,647 (32-bit signed integer).
 
