@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/netip"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"heckel.io/ntfy/v2/util"
@@ -195,4 +196,14 @@ func maybeIgnoreSpecialHeader(name, value string) string {
 		return ""
 	}
 	return value
+}
+
+// validAndroidNotificationID validates that the given string can be used as an Android notification ID
+// Android notification IDs must be valid integers (can be negative, zero, or positive)
+func validAndroidNotificationID(id string) bool {
+	if id == "" {
+		return true // empty is valid (means don't set notification ID)
+	}
+	_, err := strconv.ParseInt(id, 10, 32) // Android uses 32-bit integers for notification IDs
+	return err == nil
 }

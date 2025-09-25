@@ -162,3 +162,21 @@ func TestVisitorID(t *testing.T) {
 	require.Equal(t, "ip:1.2.0.0", visitorID(netip.MustParseAddr("1.2.3.4"), nil, confWithShortenedPrefixes))
 	require.Equal(t, "ip:2a01:599:b26:2300::", visitorID(netip.MustParseAddr("2a01:599:b26:2397:dbe7:5aa2:95ce:1e83"), nil, confWithShortenedPrefixes))
 }
+
+func TestValidAndroidNotificationID(t *testing.T) {
+	// Test valid notification IDs
+	require.True(t, validAndroidNotificationID(""))         // empty is valid
+	require.True(t, validAndroidNotificationID("0"))        // zero is valid
+	require.True(t, validAndroidNotificationID("1"))        // positive is valid
+	require.True(t, validAndroidNotificationID("-1"))       // negative is valid
+	require.True(t, validAndroidNotificationID("2147483647"))  // max 32-bit int
+	require.True(t, validAndroidNotificationID("-2147483648")) // min 32-bit int
+
+	// Test invalid notification IDs
+	require.False(t, validAndroidNotificationID("not-a-number"))
+	require.False(t, validAndroidNotificationID("12.5"))        // decimal
+	require.False(t, validAndroidNotificationID("2147483648"))  // too large for 32-bit int
+	require.False(t, validAndroidNotificationID("-2147483649")) // too small for 32-bit int
+	require.False(t, validAndroidNotificationID("1.23e10"))     // scientific notation
+	require.False(t, validAndroidNotificationID(" 123 "))      // whitespace (though trimming happens elsewhere)
+}
