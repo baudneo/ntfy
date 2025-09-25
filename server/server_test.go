@@ -3318,3 +3318,94 @@ func waitForWithMaxWait(t *testing.T, maxWait time.Duration, f func() bool) {
 	}
 	t.Fatalf("Function f did not succeed after %v: %v", maxWait, string(debug.Stack()))
 }
+
+func TestServer_PublishWithAndroidNotificationID(t *testing.T) {
+	s := newTestServer(t, newTestConfig(t))
+
+	// Test valid Android notification ID via header
+	response := request(t, s, "PUT", "/mytopic", "message with Android notification ID", map[string]string{
+		"X-Android-Notification-ID": "12345",
+	})
+	msg := toMessage(t, response.Body.String())
+	require.Equal(t, "12345", msg.AndroidNotificationID)
+
+	// Test valid Android notification ID via query parameter
+	response = request(t, s, "PUT", "/mytopic?android-notification-id=67890", "another message", nil)
+	msg = toMessage(t, response.Body.String())
+	require.Equal(t, "67890", msg.AndroidNotificationID)
+
+	// Test negative Android notification ID (valid)
+	response = request(t, s, "PUT", "/mytopic", "message with negative ID", map[string]string{
+		"X-Android-Notification-ID": "-100",
+	})
+	msg = toMessage(t, response.Body.String())
+	require.Equal(t, "-100", msg.AndroidNotificationID)
+
+	// Test zero Android notification ID (valid)
+	response = request(t, s, "PUT", "/mytopic", "message with zero ID", map[string]string{
+		"X-Android-Notification-ID": "0",
+	})
+	msg = toMessage(t, response.Body.String())
+	require.Equal(t, "0", msg.AndroidNotificationID)
+}
+
+func TestServer_PublishWithInvalidAndroidNotificationID(t *testing.T) {
+	s := newTestServer(t, newTestConfig(t))
+
+	// Test invalid Android notification ID - non-numeric
+	response := request(t, s, "PUT", "/mytopic", "message", map[string]string{
+		"X-Android-Notification-ID": "not-a-number",
+	})
+	require.Equal(t, 400, response.Code)
+	require.Equal(t, 40049, toHTTPError(t, response.Body.String()).Code)
+
+	// Test invalid Android notification ID - decimal
+	response = request(t, s, "PUT", "/mytopic", "message", map[string]string{
+		"X-Android-Notification-ID": "12.5",
+	})
+	require.Equal(t, 400, response.Code)
+	require.Equal(t, 40049, toHTTPError(t, response.Body.String()).Code)
+
+	// Test invalid Android notification ID - too large for 32-bit int
+	response = request(t, s, "PUT", "/mytopic", "message", map[string]string{
+		"X-Android-Notification-ID": "2147483648", // 2^31
+	})
+	require.Equal(t, 400, response.Code)
+	require.Equal(t, 40049, toHTTPError(t, response.Body.String()).Code)
+
+	// Test invalid Android notification ID - too small for 32-bit int
+	response = request(t, s, "PUT", "/mytopic", "message", map[string]string{
+		"X-Android-Notification-ID": "-2147483649", // -2^31 - 1
+	})
+	require.Equal(t, 400, response.Code)
+	require.Equal(t, 40049, toHTTPError(t, response.Body.String()).Code)
+}
+
+func TestServer_PublishWithAndroidNotificationIDJSON(t *testing.T) {
+	s := newTestServer(t, newTestConfig(t))
+
+	// Test Android notification ID via JSON
+	jsonBody := `{
+		"topic": "mytopic",
+		"message": "JSON message with Android notification ID",
+		"android_notification_id": "999"
+	}`
+	response := request(t, s, "PUT", "/", jsonBody, map[string]string{
+		"Content-Type": "application/json",
+	})
+	msg := toMessage(t, response.Body.String())
+	require.Equal(t, "999", msg.AndroidNotificationID)
+	require.Equal(t, "JSON message with Android notification ID", msg.Message)
+}
+
+func TestServer_PublishWithEmptyAndroidNotificationID(t *testing.T) {
+	s := newTestServer(t, newTestConfig(t))
+
+	// Test empty Android notification ID (should be valid and not set)
+	response := request(t, s, "PUT", "/mytopic", "message without ID", map[string]string{
+		"X-Android-Notification-ID": "",
+	})
+	msg := toMessage(t, response.Body.String())
+	require.Equal(t, "", msg.AndroidNotificationID)
+	require.Equal(t, 200, response.Code)
+}

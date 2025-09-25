@@ -492,6 +492,88 @@ You can set the priority with the header `X-Priority` (or any of its aliases: `P
   <figcaption>Detail view of priority notifications</figcaption>
 </figure>
 
+## Android notification ID
+_Supported on:_ :material-android:
+
+By default, ntfy creates a new notification for each message you publish. On Android, you can specify a custom 
+**notification ID** to replace existing notifications instead of creating new ones. This is useful for progress updates, 
+status changes, or any scenario where you want to update a notification rather than stack multiple notifications.
+
+When you publish a message with the same Android notification ID as a previously published message, the Android app will 
+replace the existing notification instead of showing a new one.
+
+The Android notification ID is automatically sent to Firebase (if enabled) and other Android push mechanisms to ensure 
+proper notification replacement behavior across all delivery methods.
+
+You can set the Android notification ID using the `X-Android-Notification-ID` header (or its alias `Android-Notification-ID`). 
+The notification ID must be a valid integer between -2,147,483,648 and 2,147,483,647 (32-bit signed integer).
+
+=== "Command line (curl)"
+    ```
+    # First message creates a notification
+    curl -H "X-Android-Notification-ID: 123" -d "Download started" ntfy.sh/downloads
+    
+    # Second message with same ID replaces the first notification
+    curl -H "X-Android-Notification-ID: 123" -d "Download 50% complete" ntfy.sh/downloads
+    
+    # Third message replaces again
+    curl -H "X-Android-Notification-ID: 123" -d "Download finished" ntfy.sh/downloads
+    ```
+
+=== "HTTP"
+    ``` http
+    POST /downloads HTTP/1.1
+    Host: ntfy.sh
+    X-Android-Notification-ID: 123
+    
+    Download started
+    ```
+
+=== "JavaScript"
+    ``` javascript
+    fetch('https://ntfy.sh/downloads', {
+        method: 'POST',
+        body: 'Download 50% complete',
+        headers: { 'X-Android-Notification-ID': '123' }
+    })
+    ```
+
+=== "Go"
+    ``` go
+    req, _ := http.NewRequest("POST", "https://ntfy.sh/downloads", strings.NewReader("Download finished"))
+    req.Header.Set("X-Android-Notification-ID", "123")
+    http.DefaultClient.Do(req)
+    ```
+
+=== "Python"
+    ``` python
+    requests.post("https://ntfy.sh/downloads",
+        data="Download 50% complete",
+        headers={ "X-Android-Notification-ID": "123" })
+    ```
+
+=== "PHP"
+    ``` php-inline
+    file_get_contents('https://ntfy.sh/downloads', false, stream_context_create([
+        'http' => [
+            'method' => 'POST',
+            'header' =>
+                "Content-Type: text/plain\r\n" .
+                "X-Android-Notification-ID: 123",
+            'content' => 'Download finished'
+        ]
+    ]));
+    ```
+
+=== "JSON (via POST)"
+    ``` json
+    {
+        "topic": "downloads",
+        "message": "Download 50% complete",
+        "android_notification_id": "123"
+    }
+    ```
+
 ## Tags & emojis 🥳 🎉
 _Supported on:_ :material-android: :material-apple: :material-firefox:
 
@@ -3942,6 +4024,7 @@ table in their canonical form.
 | `X-Filename`    | `Filename`, `file`, `f`                    | Optional [attachment](#attachments) filename, as it appears in the client                     |
 | `X-Email`       | `X-E-Mail`, `Email`, `E-Mail`, `mail`, `e` | E-mail address for [e-mail notifications](#e-mail-notifications)                              |
 | `X-Call`        | `Call`                                     | Phone number for [phone calls](#phone-calls)                                                  |
+| `X-Android-Notification-ID` | `Android-Notification-ID`           | Custom [Android notification ID](#android-notification-id) to replace existing notifications  |
 | `X-Cache`       | `Cache`                                    | Allows disabling [message caching](#message-caching)                                          |
 | `X-Firebase`    | `Firebase`                                 | Allows disabling [sending to Firebase](#disable-firebase)                                     |
 | `X-UnifiedPush` | `UnifiedPush`, `up`                        | [UnifiedPush](#unifiedpush) publish option, only to be used by UnifiedPush apps               |

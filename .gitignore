@@ -16,3 +16,4 @@ __pycache__
 web/dev-dist/
 venv/
 cmd/key-file.yaml
+ntfy

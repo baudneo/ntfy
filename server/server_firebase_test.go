@@ -356,3 +356,72 @@ func TestToFirebaseSender_Abuse(t *testing.T) {
 	require.Equal(t, errFirebaseTemporarilyBanned, client.Send(visitor, &message{Topic: "mytopic"}))
 	require.Equal(t, 0, len(sender.Messages()))
 }
+
+func TestFirebase_toFirebaseMessage_WithAndroidNotificationID(t *testing.T) {
+	// Test message with Android notification ID
+	m := newDefaultMessage("mytopic", "test message")
+	m.AndroidNotificationID = "123"
+	fbm, err := toFirebaseMessage(m, &testAuther{Allow: true})
+	require.Nil(t, err)
+	require.Equal(t, "mytopic", fbm.Topic)
+	
+	// Check that the Android notification ID is in the data
+	require.Equal(t, "123", fbm.Data["android_notification_id"])
+	
+	// Check that AndroidConfig is created with notification tag
+	require.NotNil(t, fbm.Android)
+	require.Equal(t, "normal", fbm.Android.Priority) // Should be normal priority for non-high priority messages
+	require.NotNil(t, fbm.Android.Notification)
+	require.Equal(t, "123", fbm.Android.Notification.Tag)
+}
+
+func TestFirebase_toFirebaseMessage_WithAndroidNotificationIDAndHighPriority(t *testing.T) {
+	// Test message with Android notification ID and high priority
+	m := newDefaultMessage("mytopic", "urgent message")
+	m.AndroidNotificationID = "456"
+	m.Priority = 5
+	fbm, err := toFirebaseMessage(m, &testAuther{Allow: true})
+	require.Nil(t, err)
+	require.Equal(t, "mytopic", fbm.Topic)
+	
+	// Check that the Android notification ID is in the data
+	require.Equal(t, "456", fbm.Data["android_notification_id"])
+	require.Equal(t, "5", fbm.Data["priority"])
+	
+	// Check that AndroidConfig is created with high priority and notification tag
+	require.NotNil(t, fbm.Android)
+	require.Equal(t, "high", fbm.Android.Priority) // Should be high priority
+	require.NotNil(t, fbm.Android.Notification)
+	require.Equal(t, "456", fbm.Android.Notification.Tag)
+}
+
+func TestFirebase_toFirebaseMessage_WithoutAndroidNotificationID(t *testing.T) {
+	// Test message without Android notification ID (existing behavior)
+	m := newDefaultMessage("mytopic", "normal message")
+	fbm, err := toFirebaseMessage(m, &testAuther{Allow: true})
+	require.Nil(t, err)
+	require.Equal(t, "mytopic", fbm.Topic)
+	
+	// Check that no Android notification ID is in the data
+	require.Empty(t, fbm.Data["android_notification_id"])
+	
+	// Check that AndroidConfig is nil for normal priority messages without notification ID
+	require.Nil(t, fbm.Android)
+}
+
+func TestFirebase_toFirebaseMessage_HighPriorityWithoutAndroidNotificationID(t *testing.T) {
+	// Test high priority message without Android notification ID (existing behavior)
+	m := newDefaultMessage("mytopic", "urgent message")
+	m.Priority = 4
+	fbm, err := toFirebaseMessage(m, &testAuther{Allow: true})
+	require.Nil(t, err)
+	require.Equal(t, "mytopic", fbm.Topic)
+	
+	// Check that no Android notification ID is in the data
+	require.Empty(t, fbm.Data["android_notification_id"])
+	
+	// Check that AndroidConfig exists for high priority but no notification tag
+	require.NotNil(t, fbm.Android)
+	require.Equal(t, "high", fbm.Android.Priority)
+	require.Nil(t, fbm.Android.Notification) // No notification config without ID
+}
