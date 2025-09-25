@@ -66,6 +66,7 @@ func TestCLI_Publish_All_The_Things(t *testing.T) {
 		"--icon", "https://ntfy.sh/static/img/ntfy.png",
 		"--attach", "https://f-droid.org/F-Droid.apk",
 		"--filename", "fdroid.apk",
+		"--android-msg-id", "test_cli_android_id",
 		"--no-cache",
 		"--no-firebase",
 		topic,
@@ -86,6 +87,7 @@ func TestCLI_Publish_All_The_Things(t *testing.T) {
 	require.Equal(t, int64(0), m.Attachment.Expires)
 	require.Equal(t, "", m.Attachment.Type)
 	require.Equal(t, "https://ntfy.sh/static/img/ntfy.png", m.Icon)
+	require.Equal(t, "test_cli_android_id", m.AndroidMsgID)
 }
 
 func TestCLI_Publish_Wait_PID_And_Cmd(t *testing.T) {

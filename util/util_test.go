@@ -275,3 +275,31 @@ func TestMaybeMarshalJSON(t *testing.T) {
 	require.Equal(t, `"`+strings.Repeat("x", 4999), MaybeMarshalJSON(strings.Repeat("x", 6000)))
 
 }
+
+func TestHashStringToInteger(t *testing.T) {
+	// Test consistent hashing
+	s1 := "test_message_id_1"
+	s2 := "test_message_id_2"
+	s3 := "another_test_id"
+	
+	h1a := HashStringToInteger(s1)
+	h1b := HashStringToInteger(s1)
+	h2 := HashStringToInteger(s2)
+	h3 := HashStringToInteger(s3)
+	
+	// Same input should produce same hash
+	require.Equal(t, h1a, h1b)
+	
+	// Different inputs should produce different hashes (with high probability)
+	require.NotEqual(t, h1a, h2)
+	require.NotEqual(t, h1a, h3)
+	require.NotEqual(t, h2, h3)
+	
+	// Test known values for regression testing
+	require.Equal(t, 92074694, HashStringToInteger("android_msg_1"))
+	require.Equal(t, 75297075, HashStringToInteger("android_msg_2"))
+	require.Equal(t, -422393179, HashStringToInteger("test_notification"))
+	
+	// Test empty string
+	require.Equal(t, -2128831035, HashStringToInteger(""))
+}

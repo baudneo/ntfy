@@ -72,6 +72,11 @@ func WithAttach(attach string) PublishOption {
 	return WithHeader("X-Attach", attach)
 }
 
+// WithAndroidMsgID sets a custom Android message ID for notification replacement
+func WithAndroidMsgID(androidMsgID string) PublishOption {
+	return WithHeader("X-Android-Msg-ID", androidMsgID)
+}
+
 // WithMarkdown instructs the server to interpret the message body as Markdown
 func WithMarkdown() PublishOption {
 	return WithHeader("X-Markdown", "yes")

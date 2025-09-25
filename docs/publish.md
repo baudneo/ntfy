@@ -492,6 +492,94 @@ You can set the priority with the header `X-Priority` (or any of its aliases: `P
   <figcaption>Detail view of priority notifications</figcaption>
 </figure>
 
+## Android notification replacement
+_Supported on:_ :material-android:
+
+Android notifications can be replaced by providing a custom `android_msg_id` field. This allows you to replace 
+existing notifications with newer ones, rather than creating additional notifications. When you publish a message
+with the same `android_msg_id`, it will replace the previous notification with that ID.
+
+The `android_msg_id` field accepts a string value that will be hashed to a consistent integer using the FNV-1a 
+algorithm to generate the Android notification ID. If `android_msg_id` is not provided, the message ID will be 
+used for hashing instead.
+
+You can set the Android message ID using the `X-Android-Msg-ID` header (or its aliases: `android-msg-id`, or `android_msg_id`).
+
+=== "Command line (curl)"
+    ```
+    curl -H "X-Android-Msg-ID: disk_space_alert" -d "Disk space low: 5GB remaining" ntfy.sh/alerts
+    curl -H "android_msg_id: disk_space_alert" -d "Disk space critically low: 1GB remaining" ntfy.sh/alerts
+    ```
+
+=== "ntfy CLI"
+    ```
+    ntfy publish --android-msg-id disk_space_alert alerts "Disk space low: 5GB remaining"
+    ntfy publish --android-msg-id disk_space_alert alerts "Disk space critically low: 1GB remaining"
+    ```
+
+=== "HTTP"
+    ``` http
+    POST /alerts HTTP/1.1
+    Host: ntfy.sh
+    X-Android-Msg-ID: disk_space_alert
+    
+    Disk space low: 5GB remaining
+    ```
+
+=== "JavaScript"
+    ``` javascript
+    fetch('https://ntfy.sh/alerts', {
+      method: 'POST',
+      headers: { 'X-Android-Msg-ID': 'disk_space_alert' },
+      body: 'Disk space low: 5GB remaining'
+    })
+    ```
+
+=== "Go"
+    ``` go
+    req, _ := http.NewRequest("POST", "https://ntfy.sh/alerts", strings.NewReader("Disk space low: 5GB remaining"))
+    req.Header.Set("X-Android-Msg-ID", "disk_space_alert")
+    http.DefaultClient.Do(req)
+    ```
+
+=== "PowerShell"
+    ``` powershell
+    $Request = @{
+      Method = "POST"
+      URI = "https://ntfy.sh/alerts"
+      Headers = @{
+        "X-Android-Msg-ID" = "disk_space_alert"
+      }
+      Body = "Disk space low: 5GB remaining"
+    }
+    Invoke-RestMethod @Request
+    ```
+    
+=== "Python"
+    ``` python
+    requests.post("https://ntfy.sh/alerts",
+        data="Disk space low: 5GB remaining",
+        headers={ "X-Android-Msg-ID": "disk_space_alert" })
+    ```
+
+=== "PHP"
+    ``` php-inline
+    file_get_contents('https://ntfy.sh/alerts', false, stream_context_create([
+        'http' => [
+            'method' => 'POST',
+            'header' =>
+                "Content-Type: text/plain\r\n" .
+                "X-Android-Msg-ID: disk_space_alert",
+            'content' => 'Disk space low: 5GB remaining'
+        ]
+    ]));
+    ```
+
+!!! info
+    This feature is Android-specific and will be ignored by iOS and web clients. The notification replacement 
+    only works within the same app installation - notifications from different topics or different servers
+    will not replace each other even with the same `android_msg_id`.
+
 ## Tags & emojis 🥳 🎉
 _Supported on:_ :material-android: :material-apple: :material-firefox:
 
@@ -1288,6 +1376,7 @@ is the only required one:
         "attach": "https://filesrv.lan/space.jpg",
         "filename": "diskspace.jpg",
         "click": "https://homecamera.lan/xasds1h2xsSsa/",
+        "android_msg_id": "disk_space_alert",
         "actions": [{ "action": "view", "label": "Admin panel", "url": "https://filesrv.lan/admin" }]
       }'
     ```
@@ -1306,6 +1395,7 @@ is the only required one:
         "attach": "https://filesrv.lan/space.jpg",
         "filename": "diskspace.jpg",
         "click": "https://homecamera.lan/xasds1h2xsSsa/",
+        "android_msg_id": "disk_space_alert",
         "actions": [{ "action": "view", "label": "Admin panel", "url": "https://filesrv.lan/admin" }]
     }
     ```
@@ -1418,22 +1508,23 @@ The JSON message format closely mirrors the format of the message you can consum
 (see [JSON message format](subscribe/api.md#json-message-format) for details), but is not exactly identical. Here's an overview of
 all the supported fields:
 
-| Field      | Required | Type                             | Example                                   | Description                                                           |
-|------------|----------|----------------------------------|-------------------------------------------|-----------------------------------------------------------------------|
-| `topic`    | ✔️       | *string*                         | `topic1`                                  | Target topic name                                                     |
-| `message`  | -        | *string*                         | `Some message`                            | Message body; set to `triggered` if empty or not passed               |
-| `title`    | -        | *string*                         | `Some title`                              | Message [title](#message-title)                                       |
-| `tags`     | -        | *string array*                   | `["tag1","tag2"]`                         | List of [tags](#tags-emojis) that may or not map to emojis            |
-| `priority` | -        | *int (one of: 1, 2, 3, 4, or 5)* | `4`                                       | Message [priority](#message-priority) with 1=min, 3=default and 5=max |
-| `actions`  | -        | *JSON array*                     | *(see [action buttons](#action-buttons))* | Custom [user action buttons](#action-buttons) for notifications       |
-| `click`    | -        | *URL*                            | `https://example.com`                     | Website opened when notification is [clicked](#click-action)          |
-| `attach`   | -        | *URL*                            | `https://example.com/file.jpg`            | URL of an attachment, see [attach via URL](#attach-file-from-a-url)   |
-| `markdown` | -        | *bool*                           | `true`                                    | Set to true if the `message` is Markdown-formatted                    |
-| `icon`     | -        | *string*                         | `https://example.com/icon.png`            | URL to use as notification [icon](#icons)                             |
-| `filename` | -        | *string*                         | `file.jpg`                                | File name of the attachment                                           |
-| `delay`    | -        | *string*                         | `30min`, `9am`                            | Timestamp or duration for delayed delivery                            |
-| `email`    | -        | *e-mail address*                 | `phil@example.com`                        | E-mail address for e-mail notifications                               |
-| `call`     | -        | *phone number or 'yes'*          | `+1222334444` or `yes`                    | Phone number to use for [voice call](#phone-calls)                    |
+| Field           | Required | Type                              | Example                                   | Description                                                           |
+|-----------------|----------|-----------------------------------|-------------------------------------------|-----------------------------------------------------------------------|
+| `topic`         | ✔️       | *string*                          | `topic1`                                  | Target topic name                                                     |
+| `message`       | -        | *string*                          | `Some message`                            | Message body; set to `triggered` if empty or not passed               |
+| `title`         | -        | *string*                          | `Some title`                              | Message [title](#message-title)                                       |
+| `tags`          | -        | *string array*                    | `["tag1","tag2"]`                         | List of [tags](#tags-emojis) that may or not map to emojis            |
+| `priority`      | -        | *int (one of: 1, 2, 3, 4, or 5)* | `4`                                       | Message [priority](#message-priority) with 1=min, 3=default and 5=max |
+| `actions`       | -        | *JSON array*                      | *(see [action buttons](#action-buttons))* | Custom [user action buttons](#action-buttons) for notifications       |
+| `click`         | -        | *URL*                             | `https://example.com`                     | Website opened when notification is [clicked](#click-action)          |
+| `attach`        | -        | *URL*                             | `https://example.com/file.jpg`            | URL of an attachment, see [attach via URL](#attach-file-from-a-url)   |
+| `markdown`      | -        | *bool*                            | `true`                                    | Set to true if the `message` is Markdown-formatted                    |
+| `icon`          | -        | *string*                          | `https://example.com/icon.png`            | URL to use as notification [icon](#icons)                             |
+| `filename`      | -        | *string*                          | `file.jpg`                                | File name of the attachment                                           |
+| `delay`         | -        | *string*                          | `30min`, `9am`                            | Timestamp or duration for delayed delivery                            |
+| `email`         | -        | *e-mail address*                  | `phil@example.com`                        | E-mail address for e-mail notifications                               |
+| `call`          | -        | *phone number or 'yes'*           | `+1222334444` or `yes`                    | Phone number to use for [voice call](#phone-calls)                    |
+| `android_msg_id` | -       | *string*                          | `disk_space_alert`                        | Custom Android message ID for [notification replacement](#android-notification-replacement) |
 
 ## Action buttons
 _Supported on:_ :material-android: :material-apple: :material-firefox:

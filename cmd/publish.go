@@ -31,6 +31,7 @@ var flagsPublish = append(
 	&cli.StringFlag{Name: "icon", Aliases: []string{"i"}, EnvVars: []string{"NTFY_ICON"}, Usage: "URL to use as notification icon"},
 	&cli.StringFlag{Name: "actions", Aliases: []string{"A"}, EnvVars: []string{"NTFY_ACTIONS"}, Usage: "actions JSON array or simple definition"},
 	&cli.StringFlag{Name: "attach", Aliases: []string{"a"}, EnvVars: []string{"NTFY_ATTACH"}, Usage: "URL to send as an external attachment"},
+	&cli.StringFlag{Name: "android-msg-id", EnvVars: []string{"NTFY_ANDROID_MSG_ID"}, Usage: "custom Android message ID for notification replacement"},
 	&cli.BoolFlag{Name: "markdown", Aliases: []string{"md"}, EnvVars: []string{"NTFY_MARKDOWN"}, Usage: "Message is formatted as Markdown"},
 	&cli.StringFlag{Name: "template", Aliases: []string{"tpl"}, EnvVars: []string{"NTFY_TEMPLATE"}, Usage: "use templates to transform JSON message body"},
 	&cli.StringFlag{Name: "filename", Aliases: []string{"name", "n"}, EnvVars: []string{"NTFY_FILENAME"}, Usage: "filename for the attachment"},
@@ -98,6 +99,7 @@ func execPublish(c *cli.Context) error {
 	icon := c.String("icon")
 	actions := c.String("actions")
 	attach := c.String("attach")
+	androidMsgID := c.String("android-msg-id")
 	markdown := c.Bool("markdown")
 	template := c.String("template")
 	filename := c.String("filename")
@@ -144,6 +146,9 @@ func execPublish(c *cli.Context) error {
 	}
 	if attach != "" {
 		options = append(options, client.WithAttach(attach))
+	}
+	if androidMsgID != "" {
+		options = append(options, client.WithAndroidMsgID(androidMsgID))
 	}
 	if markdown {
 		options = append(options, client.WithMarkdown())

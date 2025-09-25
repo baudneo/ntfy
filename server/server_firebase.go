@@ -170,6 +170,9 @@ func toFirebaseMessage(m *message, auther user.Auther) (*messaging.Message, erro
 			"content_type": m.ContentType,
 			"encoding":     m.Encoding,
 		}
+		if m.AndroidMsgID != "" {
+			data["android_msg_id"] = m.AndroidMsgID
+		}
 		if len(m.Actions) > 0 {
 			actions, err := json.Marshal(m.Actions)
 			if err != nil {
