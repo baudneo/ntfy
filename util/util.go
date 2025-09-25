@@ -438,3 +438,19 @@ func Int(v int) *int {
 func Time(v time.Time) *time.Time {
 	return &v
 }
+
+// HashStringToInteger hashes a string to a consistent 32-bit integer using FNV-1a algorithm
+// This is used for Android notification IDs to ensure consistent replacement
+func HashStringToInteger(s string) int {
+	const fnvOffsetBasis32 = 2166136261
+	const fnvPrime32 = 16777619
+	
+	hash := uint32(fnvOffsetBasis32)
+	for _, b := range []byte(s) {
+		hash ^= uint32(b)
+		hash *= fnvPrime32
+	}
+	
+	// Convert to int32 to ensure consistent behavior across platforms
+	return int(int32(hash))
+}

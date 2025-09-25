@@ -1063,6 +1063,7 @@ func (s *Server) parsePublishParams(r *http.Request, m *message) (cache bool, fi
 		cache = false
 		email = ""
 	}
+	m.AndroidMsgID = readParam(r, "x-android-msg-id", "android-msg-id", "android_msg_id")
 	return cache, firebase, email, call, template, unifiedpush, nil
 }
 
@@ -1948,6 +1949,9 @@ func (s *Server) transformBodyJSON(next handleFunc) handleFunc {
 		}
 		if m.Firebase != "" {
 			r.Header.Set("X-Firebase", m.Firebase)
+		}
+		if m.AndroidMsgID != "" {
+			r.Header.Set("X-Android-Msg-ID", m.AndroidMsgID)
 		}
 		return next(w, r, v)
 	}

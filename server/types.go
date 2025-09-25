@@ -40,6 +40,7 @@ type message struct {
 	PollID      string      `json:"poll_id,omitempty"`
 	ContentType string      `json:"content_type,omitempty"` // text/plain by default (if empty), or text/markdown
 	Encoding    string      `json:"encoding,omitempty"`     // empty for raw UTF-8, or "base64" for encoded bytes
+	AndroidMsgID string     `json:"android_msg_id,omitempty"` // Custom Android message ID for notification replacement
 	Sender      netip.Addr  `json:"-"`                      // IP address of uploader, used for rate limiting
 	User        string      `json:"-"`                      // UserID of the uploader, used to associated attachments
 }
@@ -91,22 +92,23 @@ func newAction() *action {
 
 // publishMessage is used as input when publishing as JSON
 type publishMessage struct {
-	Topic    string   `json:"topic"`
-	Title    string   `json:"title"`
-	Message  string   `json:"message"`
-	Priority int      `json:"priority"`
-	Tags     []string `json:"tags"`
-	Click    string   `json:"click"`
-	Icon     string   `json:"icon"`
-	Actions  []action `json:"actions"`
-	Attach   string   `json:"attach"`
-	Markdown bool     `json:"markdown"`
-	Filename string   `json:"filename"`
-	Email    string   `json:"email"`
-	Call     string   `json:"call"`
-	Cache    string   `json:"cache"`    // use string as it defaults to true (or use &bool instead)
-	Firebase string   `json:"firebase"` // use string as it defaults to true (or use &bool instead)
-	Delay    string   `json:"delay"`
+	Topic        string   `json:"topic"`
+	Title        string   `json:"title"`
+	Message      string   `json:"message"`
+	Priority     int      `json:"priority"`
+	Tags         []string `json:"tags"`
+	Click        string   `json:"click"`
+	Icon         string   `json:"icon"`
+	Actions      []action `json:"actions"`
+	Attach       string   `json:"attach"`
+	Markdown     bool     `json:"markdown"`
+	Filename     string   `json:"filename"`
+	Email        string   `json:"email"`
+	Call         string   `json:"call"`
+	Cache        string   `json:"cache"`         // use string as it defaults to true (or use &bool instead)
+	Firebase     string   `json:"firebase"`      // use string as it defaults to true (or use &bool instead)
+	Delay        string   `json:"delay"`
+	AndroidMsgID string   `json:"android_msg_id"` // Custom Android message ID for notification replacement
 }
 
 // messageEncoder is a function that knows how to encode a message

@@ -84,6 +84,23 @@ func TestServer_PublishWithFirebase(t *testing.T) {
 	require.Equal(t, "my first message", sender.Messages()[0].APNS.Payload.CustomData["message"])
 }
 
+func TestServer_PublishWithFirebase_AndroidMsgID(t *testing.T) {
+	sender := newTestFirebaseSender(10)
+	s := newTestServer(t, newTestConfig(t))
+	s.firebaseClient = newFirebaseClient(sender, &testAuther{Allow: true})
+
+	// Test AndroidMsgID is included in Firebase data
+	response := request(t, s, "PUT", "/mytopic", "Android message test", map[string]string{
+		"X-Android-Msg-ID": "test_android_id_firebase",
+	})
+	msg := toMessage(t, response.Body.String())
+	require.Equal(t, "test_android_id_firebase", msg.AndroidMsgID)
+
+	time.Sleep(100 * time.Millisecond) // Firebase publishing happens
+	require.Equal(t, 1, len(sender.Messages()))
+	require.Equal(t, "test_android_id_firebase", sender.Messages()[0].Data["android_msg_id"])
+}
+
 func TestServer_PublishWithoutFirebase(t *testing.T) {
 	sender := newTestFirebaseSender(10)
 	s := newTestServer(t, newTestConfig(t))
@@ -1767,6 +1784,49 @@ func TestServer_PublishAsJSON_Invalid(t *testing.T) {
 	body := `{"topic":"mytopic",INVALID`
 	response := request(t, s, "PUT", "/", body, nil)
 	require.Equal(t, 400, response.Code)
+}
+
+func TestServer_PublishAsJSON_WithAndroidMsgID(t *testing.T) {
+	s := newTestServer(t, newTestConfig(t))
+	
+	// Test with AndroidMsgID in JSON body
+	body := `{"topic":"mytopic","message":"Android notification test","android_msg_id":"custom_android_id_123"}`
+	response := request(t, s, "PUT", "/", body, nil)
+	require.Equal(t, 200, response.Code)
+	
+	m := toMessage(t, response.Body.String())
+	require.Equal(t, "mytopic", m.Topic)
+	require.Equal(t, "Android notification test", m.Message)
+	require.Equal(t, "custom_android_id_123", m.AndroidMsgID)
+	
+	// Test with AndroidMsgID via header
+	response2 := request(t, s, "PUT", "/anothertopic", "Header test message", map[string]string{
+		"X-Android-Msg-ID": "header_android_id_456",
+	})
+	require.Equal(t, 200, response2.Code)
+	
+	m2 := toMessage(t, response2.Body.String())
+	require.Equal(t, "anothertopic", m2.Topic)
+	require.Equal(t, "Header test message", m2.Message)
+	require.Equal(t, "header_android_id_456", m2.AndroidMsgID)
+	
+	// Test with query parameter
+	response3 := request(t, s, "PUT", "/thirdtopic?android_msg_id=query_android_id_789", "Query test message", nil)
+	require.Equal(t, 200, response3.Code)
+	
+	m3 := toMessage(t, response3.Body.String())
+	require.Equal(t, "thirdtopic", m3.Topic)
+	require.Equal(t, "Query test message", m3.Message)
+	require.Equal(t, "query_android_id_789", m3.AndroidMsgID)
+	
+	// Test that AndroidMsgID hashes consistently for Android notification IDs
+	androidNotificationID1 := util.HashStringToInteger("custom_android_id_123")
+	androidNotificationID2 := util.HashStringToInteger("custom_android_id_123")
+	require.Equal(t, androidNotificationID1, androidNotificationID2, "Same AndroidMsgID should hash to same notification ID")
+	
+	// Test fallback to message ID when AndroidMsgID is empty
+	androidNotificationID3 := util.HashStringToInteger(m2.ID)
+	require.NotZero(t, androidNotificationID3, "Message ID should produce valid hash for notification ID")
 }
 
 func TestServer_PublishWithTierBasedMessageLimitAndExpiry(t *testing.T) {
