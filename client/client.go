@@ -51,7 +51,7 @@ type Message struct { // TODO combine with server.message
 	Click        string
 	Icon         string
 	Attachment   *Attachment
-	AndroidMsgID string // Custom Android message ID for notification replacement
+	AndroidMsgID string `json:"android_msg_id,omitempty"` // Custom Android message ID for notification replacement
 
 	// Additional fields
 	TopicURL       string
